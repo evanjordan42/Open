@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Chessboard } from 'chessboardjsx';
+import Chessboard from 'chessboardjsx';
 
 function App() {
   /* configurable metrics:
@@ -8,6 +8,7 @@ function App() {
   */
   const [play, setPlay] = useState(''); // the list of moves played
   const [moves, setMoves] = useState(3); // the number of moves that can be picked from at random
+  const [position, setPosition] = useState('start');
 
   function onDrop(sourceSquare, targetSquare, piece) {
     let newPlay = play;
@@ -20,17 +21,19 @@ function App() {
     console.log('piece: ', piece);
   }
 
-  function getMove() {
+  function getMove(play) {
     // call server with play and moves then update board
   }
 
-  function updateBoard() {
+  function updateBoard(move) {
     // update position object
+    let newPosition = { ...position };
+
   }
 
   return (
     <div>
-      <Chessboard position="start" onDrop={onDrop} />
+      <Chessboard position={position} onDrop={onDrop} />
     </div>
   )
 }
