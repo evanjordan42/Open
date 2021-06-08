@@ -1,39 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import Chessboard from 'chessboardjsx';
+import Chess from 'chess.js'
 
 function App() {
   /* configurable metrics:
   1. number of top replies to consider picking a move from, e.g. pick one of the top 3 most frequent responses
   2. biggest drop in analysis standing to stop line
+
+  Order of operations:
+  -----------------------
+  1. Player drags and drops a piece
+  2. Chessboard.jsx exports move
+  3. Chess.js validates, if impossible move nothing happens
+  4. If possible move, Chess.js will export fen to
+    4a. update Chessboard.jsx
+    4b. send to Lichess to get x moves
+  5. A move is chosen at random and entered into Chess.js
+  6. Chess.js exports fen which is then entered into Chessboard.jsx - possibly after a delay
+
+
+  When a player "loses":
+  1. Repeat the previous move sequence
+  2. Show following lines?
+
   */
-  const [play, setPlay] = useState(''); // the list of moves played
+  let chess = new Chess('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+
+  const [fen, setFen] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [moves, setMoves] = useState(3); // the number of moves that can be picked from at random
-  const [position, setPosition] = useState('start');
+  const [tolerance, setTolerance] = useState(1); // the difference in pawn units between the previous move and the move made required for the losing behavior to occur
 
-  function onDrop(sourceSquare, targetSquare, piece) {
-    let newPlay = play;
-    //newPlay += sourceSquare + targetSquare
 
-    // update play string
-    // call getMove
-    console.log('sourceSquare: ', sourceSquare);
-    console.log('targetSquare: ', targetSquare);
-    console.log('piece: ', piece);
+  function onDrop(moveObj) { // validates move, then sets fen and calls getMoves
+    const chess = new Chess(fen)
+    if (chess.move({ from: moveObj.sourceSquare, to: moveObj.targetSquare })) {
+      let fen = chess.fen();
+      setFen(fen);
+      getMoves(fen);
+    }
   }
 
-  function getMove(play) {
-    // call server with play and moves then update board
+  function getMoves(fen) { // calls server with fen then calls updateBoard with one of the x responses
+
   }
 
   function updateBoard(move) {
     // update position object
-    let newPosition = { ...position };
 
   }
 
   return (
     <div>
-      <Chessboard position={position} onDrop={onDrop} />
+      <Chessboard position={fen} onDrop={onDrop} />
     </div>
   )
 }
