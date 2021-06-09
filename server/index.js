@@ -11,6 +11,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/', express.static(path.join(__dirname, '../client/dist')));
 
-app.get('/move', controllers.getMove)
+app.get('/getMoves', controllers.getMoves)
 
 app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));
