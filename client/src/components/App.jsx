@@ -35,6 +35,25 @@ function App() {
   function onDrop(moveObj) { // validates move, then sets fen and calls getMoves
     const chess = new Chess(fen)
     // castling
+    let source = chess.get(moveObj.sourceSquare);
+    let target = chess.get(moveObj.targetSquare);
+    let castling = (source.type === 'k' && target.type === 'r' && moveObj.sourceSquare[0] === 'e')
+    if (castling && moveObj.targetSquare[0] === 'h') {
+      // kingside castle
+      if (chess.move('O-O')) {
+        let fen = chess.fen();
+        setFen(fen);
+        getMoves(fen);
+      }
+    }
+    if (castling && moveObj.targetSquare[0] === 'a') {
+      //queenside castle
+      if (chess.move('O-O-O')) {
+        let fen = chess.fen();
+        setFen(fen);
+        getMoves(fen);
+      }
+    }
 
     if (chess.move({ from: moveObj.sourceSquare, to: moveObj.targetSquare })) {
       let fen = chess.fen();
