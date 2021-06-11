@@ -27,42 +27,42 @@ function App() {
   */
   let chess = new Chess('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
-  const [fen, setFen] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  const [FEN, setFEN] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [numMoves, setNumMoves] = useState(3); // the number of moves that can be picked from at random
-  const [tolerance, setTolerance] = useState(1); // the difference in pawn units between the previous move and the move made required for the losing behavior to occur
+  const [tolerance, setTolerance] = useState(10); // the difference in evaluation score between the previous move and the move made required for the learning behavior to occur
+  const [learning, setLearning] = useState(false);
+  const [currentEval, setCurrentEval] = useState(0);
 
+  function onDrop(moveObj) { // validates move then calls userMove
+    const chess = new Chess(FEN)
 
-  function onDrop(moveObj) { // validates move, then sets fen and calls getMoves
-    const chess = new Chess(fen)
-    // castling
     let source = chess.get(moveObj.sourceSquare);
     let target = chess.get(moveObj.targetSquare);
-    let castling = (source.type === 'k' && target.type === 'r' && moveObj.sourceSquare[0] === 'e')
+    let castling = (source.type === 'k' && target && target.type === 'r' && moveObj.sourceSquare[0] === 'e')
     if (castling && moveObj.targetSquare[0] === 'h') {
-      // kingside castle
       if (chess.move('O-O')) {
-        let fen = chess.fen();
-        setFen(fen);
-        getMoves(fen);
+        userMove(chess.fen())
       }
     }
     if (castling && moveObj.targetSquare[0] === 'a') {
-      //queenside castle
       if (chess.move('O-O-O')) {
-        let fen = chess.fen();
-        setFen(fen);
-        getMoves(fen);
+        userMove(chess.fen())
       }
     }
 
     if (chess.move({ from: moveObj.sourceSquare, to: moveObj.targetSquare })) {
-      let fen = chess.fen();
-      setFen(fen);
-      getMoves(fen);
+      userMove(chess.fen())
+      console.log(chess.fen())
     }
   }
 
-  function getMoves(fen) { // calls server with fen then calls updateBoard with one of the x responses
+  function userMove(fen) {
+    setFEN(fen);
+    evaluatePosition(fen, true)
+    //getMoves(fen)
+  }
+
+  function getMoves(fen) { // calls server with fen then calls lichessMove with one of the x responses
     axios.get('/getMoves', {
       params: {
         fen, moves: numMoves
@@ -72,23 +72,47 @@ function App() {
         let moves = res.data
         if (moves.length) {
           let randomMove = moves[Math.floor(Math.random() * moves.length)].san
-          console.log('randomMove: ', randomMove)
-          updateBoard(randomMove, fen)
+          setTimeout(lichessMove(randomMove, fen), 1000)
         } else {
           console.log('Recieved no moves')
         }
       })
   }
 
-  function updateBoard(move, fen) {
+  function evaluatePosition(fen, user) { // gets evaluation from lichess API, if user exceeded tolerance stop play
+    axios.get('/getEval', {
+      params: {
+        fen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1'
+      }
+    })
+      .then((res) => {
+        let badMove = false;
+        let evaluation = res.data.pvs[0].cp
+        console.log('evaluation: ', evaluation)
+        if (user) {
+          if ((evaluation - currentEval) <= -tolerance) {
+            badMove = true;
+            setLearning(true)
+            console.log(`!! went from ${currentEval / 10} to ${evaluation / 10}, a difference of ${(currentEval - evaluation) / 10}`)
+          }
+          if (!badMove) {
+            getMoves(fen)
+          }
+        }
+        setCurrentEval(evaluation)
+      })
+  }
+
+  function lichessMove(move, fen) {
     const chess = new Chess(fen);
     chess.move(move)
-    setFen(chess.fen());
+    setFEN(chess.fen())
+    evaluatePosition(chess.fen(), false);
   }
 
   return (
     <div>
-      <Chessboard position={fen} onDrop={onDrop} />
+      <Chessboard position={FEN} onDrop={onDrop} />
     </div>
   )
 }

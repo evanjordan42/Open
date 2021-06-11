@@ -14,4 +14,17 @@ module.exports.getMoves = (req, res) => {
     .then((response) => {
       res.send(response.data.moves);
     })
+    .catch((err) => { console.log('Error getting moves: ', err) })
+}
+
+module.exports.getEval = (req, res) => {
+  axios.get('https://lichess.org/api/cloud-eval', {
+    params: {
+      fen: req.query.fen
+    }
+  })
+    .then((response) => {
+      res.send(response.data)
+    })
+    .catch((err) => { console.log('Error getting eval: ') })
 }
