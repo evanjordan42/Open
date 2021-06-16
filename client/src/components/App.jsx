@@ -29,9 +29,9 @@ function App() {
 
   const [FEN, setFEN] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [numMoves, setNumMoves] = useState(3); // the number of moves that can be picked from at random
-  const [tolerance, setTolerance] = useState(10); // the difference in evaluation score between the previous move and the move made required for the learning behavior to occur
+  const [tolerance, setTolerance] = useState(100); // the difference in score score between the previous move and the move made required for the learning behavior to occur
   const [learning, setLearning] = useState(false);
-  const [currentEval, setCurrentEval] = useState(0);
+  const [currentScore, setCurrentScore] = useState(0);
 
   function onDrop(moveObj) { // validates move then calls userMove
     const chess = new Chess(FEN)
@@ -56,7 +56,7 @@ function App() {
 
   function userMove(fen) {
     setFEN(fen);
-    evaluatePosition(fen, true)
+    scorePosition(fen, true)
   }
 
   function playResponse(fen) { // calls server with fen then calls lichessMove with one of the x responses
@@ -76,27 +76,31 @@ function App() {
       })
   }
 
-  function evaluatePosition(fen, user) { // gets evaluation from lichess API, if user exceeded tolerance stop play
-    axios.get('/getEval', {
+  function scorePosition(fen, user) { // gets score from lichess API, if user exceeded tolerance stop play
+    console.log('fen: ', fen)
+    axios.get('/getScore', {
       params: {
         fen: enPassentFix(fen)
       }
     })
       .then((res) => {
-        let evaluation = res.data.pvs[0].cp
-        console.log('evaluation: ', evaluation)
+        if (res.data === 'not found') {
+          console.log('no cloud analysis found')
+        }
+        let score = res.data.pvs[0].cp
         let badMove = false;
+        console.log('score: ', score / 100)
         if (user) {
-          if ((evaluation - currentEval) <= -tolerance) {
+          if ((score - currentScore) <= -tolerance) {
             badMove = true;
             setLearning(true)
-            console.log(`!! went from ${currentEval / 10} to ${evaluation / 10}, a difference of ${(currentEval - evaluation) / 10}`)
+            console.log(`!! went from ${currentScore / 100} to ${score / 100}, a difference of ${(currentScore - score) / 100}`)
           }
           if (!badMove) {
             playResponse(fen);
           }
         }
-        setCurrentEval(evaluation)
+        setCurrentScore(score)
       })
   }
 
@@ -104,10 +108,10 @@ function App() {
     const chess = new Chess(fen);
     chess.move(move)
     setFEN(chess.fen())
-    evaluatePosition(chess.fen(), false);
+    scorePosition(chess.fen(), false);
   }
 
-  function enPassentFix(fen) {
+  function enPassentFix(fen) { // lichess analysis API does not take the wiki-defined FEN notation, removing en-passent square fixes this.
     let split = fen.split(' ');
     split[3] = '-';
     return split.join(' ');
