@@ -26,5 +26,5 @@ module.exports.getEval = (req, res) => {
     .then((response) => {
       res.send(response.data)
     })
-    .catch((err) => { console.log('Error getting eval: ') })
+    .catch((err) => { console.log('Error getting eval') })
 }

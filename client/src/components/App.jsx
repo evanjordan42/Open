@@ -35,7 +35,6 @@ function App() {
 
   function onDrop(moveObj) { // validates move then calls userMove
     const chess = new Chess(FEN)
-
     let source = chess.get(moveObj.sourceSquare);
     let target = chess.get(moveObj.targetSquare);
     let castling = (source.type === 'k' && target && target.type === 'r' && moveObj.sourceSquare[0] === 'e')
@@ -52,17 +51,15 @@ function App() {
 
     if (chess.move({ from: moveObj.sourceSquare, to: moveObj.targetSquare })) {
       userMove(chess.fen())
-      console.log(chess.fen())
     }
   }
 
   function userMove(fen) {
     setFEN(fen);
     evaluatePosition(fen, true)
-    //getMoves(fen)
   }
 
-  function getMoves(fen) { // calls server with fen then calls lichessMove with one of the x responses
+  function playResponse(fen) { // calls server with fen then calls lichessMove with one of the x responses
     axios.get('/getMoves', {
       params: {
         fen, moves: numMoves
@@ -72,7 +69,7 @@ function App() {
         let moves = res.data
         if (moves.length) {
           let randomMove = moves[Math.floor(Math.random() * moves.length)].san
-          setTimeout(lichessMove(randomMove, fen), 1000)
+          lichessMove(randomMove, fen)
         } else {
           console.log('Recieved no moves')
         }
@@ -82,13 +79,13 @@ function App() {
   function evaluatePosition(fen, user) { // gets evaluation from lichess API, if user exceeded tolerance stop play
     axios.get('/getEval', {
       params: {
-        fen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1'
+        fen: enPassentFix(fen)
       }
     })
       .then((res) => {
-        let badMove = false;
         let evaluation = res.data.pvs[0].cp
         console.log('evaluation: ', evaluation)
+        let badMove = false;
         if (user) {
           if ((evaluation - currentEval) <= -tolerance) {
             badMove = true;
@@ -96,7 +93,7 @@ function App() {
             console.log(`!! went from ${currentEval / 10} to ${evaluation / 10}, a difference of ${(currentEval - evaluation) / 10}`)
           }
           if (!badMove) {
-            getMoves(fen)
+            playResponse(fen);
           }
         }
         setCurrentEval(evaluation)
@@ -108,6 +105,12 @@ function App() {
     chess.move(move)
     setFEN(chess.fen())
     evaluatePosition(chess.fen(), false);
+  }
+
+  function enPassentFix(fen) {
+    let split = fen.split(' ');
+    split[3] = '-';
+    return split.join(' ');
   }
 
   return (
