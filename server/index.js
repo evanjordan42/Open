@@ -13,5 +13,6 @@ app.use('/', express.static(path.join(__dirname, '../client/dist')));
 
 app.get('/getMoves', controllers.getMoves)
 app.get('/getScore', controllers.getScore)
+app.get('/stockfish', controllers.stockfish);
 
 app.listen(PORT, () => console.log(`Listening on http://localhost:${PORT}`));

@@ -1,4 +1,6 @@
 const axios = require('axios')
+var stockfish = require('stockfish')
+var engine = stockfish();
 
 module.exports.getMoves = (req, res) => {
   axios.get('https://explorer.lichess.ovh/lichess', {
@@ -30,4 +32,16 @@ module.exports.getScore = (req, res) => {
       console.log('Error getting score: ', err.response.statusText)
       res.end('not found')
     })
+}
+
+module.exports.stockfish = (req, res) => {
+  engine.onmessage = function (event) {
+    if (event.split(' ')[2] === '18') {
+      let score = (event.split(' ')[9] / 100)
+      console.log('score: ' + score)
+      res.send({ score })
+    }
+  }
+  engine.postMessage("position fen " + req.query.fen)
+  engine.postMessage("go to depth 18")
 }
