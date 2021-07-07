@@ -16,13 +16,14 @@ module.exports.getMoves = (req, res) => {
     .then((response) => {
       res.send(response.data.moves);
     })
-    .catch((err) => { console.log('Error getting moves: ', err) })
+    .catch((err) => { console.log('Error getting moves: ', err); res.end() })
 }
 
 module.exports.getScore = (req, res) => {
   axios.get('https://lichess.org/api/cloud-eval', {
     params: {
-      fen: req.query.fen
+      fen: req.query.fen,
+      multiPv: 5
     }
   })
     .then((response) => {
@@ -35,13 +36,22 @@ module.exports.getScore = (req, res) => {
 }
 
 module.exports.stockfish = (req, res) => {
+  let pvs = [];
+  engine.postMessage(`setoption name multipv value ${req.query.multiPv}\\n`)
+  engine.postMessage('position fen ' + req.query.fen)
   engine.onmessage = function (event) {
-    if (event.split(' ')[2] === '18') {
-      let score = (event.split(' ')[9] / 100)
-      console.log('score: ' + score)
-      res.send({ score })
+    if (event.split(' ')[2] === '18' /* && event.split(' ')[6] === String(req.query.multiPv)*/) {
+      //console.log(event)
+      let moves = event.split(' ');
+      moves.splice(0, 19);
+      moves.splice(10, 30)
+      let pvNum = event.split(' ')[6]
+      pvs[pvNum - 1] = { moves, cp: event.split(' ')[9] }
+      if (pvs.length === Number(req.query.multiPv)) {
+        console.log('pvs: ', pvs)
+        res.send(pvs)
+      }
     }
   }
-  engine.postMessage("position fen " + req.query.fen)
-  engine.postMessage("go to depth 18")
+  engine.postMessage('go to depth 18')
 }
