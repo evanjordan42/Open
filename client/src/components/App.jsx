@@ -30,7 +30,7 @@ function App() {
   const [FEN, setFEN] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [numMoves, setNumMoves] = useState(3); // the number of moves that can be picked from at random
   const [bestMoves, setBestMoves] = useState([])
-  const [tolerance, setTolerance] = useState(100); // the difference in score score between the previous move and the move made required for the learning behavior to occur
+  const [tolerance, setTolerance] = useState(300); // the difference in score score between the previous move and the move made required for the learning behavior to occur
   const [learning, setLearning] = useState(false);
   const [currentScore, setCurrentScore] = useState(0);
   const [useStockfish, setUseStockfish] = useState(true);
@@ -78,43 +78,44 @@ function App() {
         }
       })
   }
-
-  // function getScore(fen, user) { // gets score from lichess API, if user exceeded tolerance stop play
-  //   axios.get(`/getScore?fen=${enPassentFix(fen)}`)
-  //     .then((res) => {
-  //       if (res.data === 'not found') {
-  //         console.log('no cloud analysis found, using stockfish')
-  //       }
-  //       if (res.data.pvs) {
-  //         let score = res.data.pvs[0].cp // assumes the first pv is the one with the greatest score, which appears to be consistent
-  //         parsePvs(res.data.pvs)
-  //         scorePosition(score, fen, user)
-  //       } else {
-  //         let pv;
-  //         user ? pv = 2 : pv = 1;
-  //         axios.get(`/stockfish?fen=${fen}&pv=${pv}`)
-  //           .then((res) => {
-  //             let score = res.data.score;
-  //             scorePosition(score, fen, user)
-  //           })
-  //       }
-  //     })
-  // }
-
+  let _stockfishOnly = true;
 
   function getScore(fen, user) { // gets score from lichess API, if user exceeded tolerance stop play
-    let multiPv;
-    user ? multiPv = 2 : multiPv = 1;
-    axios.get(`/stockfish?fen=${fen}&multiPv=${multiPv}`)
-      .then((res) => {
-        let score = res.data.score;
-        scorePosition(score, fen, user)
-      })
+    if (_stockfishOnly) {
+      let multiPv;
+      user ? multiPv = 1 : multiPv = 2;
+      axios.get(`/stockfish?fen=${fen}&multiPv=${multiPv}`)
+        .then((res) => {
+          let score = res.data.pvs[0].cp
+          user ? null : saveBestMoves(res.data.pvs)
+          scorePosition(score, fen, user)
+        })
+    } else {
+      axios.get(`/getScore?fen=${enPassentFix(fen)}`)
+        .then((res) => {
+          if (res.data !== 'Not Found') {
+            console.log('res.data: ', res.data)
+            let score = res.data.pvs[0].cp // assumes the first pv is the one with the greatest score, which appears to be consistent
+            user ? null : saveBestMoves(res.data.pvs)
+            scorePosition(score, fen, user)
+          } else {
+            console.log('no cloud analysis found, using stockfish')
+            let multiPv;
+            user ? multiPv = 1 : multiPv = 2;
+            axios.get(`/stockfish?fen=${fen}&multiPv=${multiPv}`)
+              .then((res) => {
+                let score = res.data.pvs[0].cp
+                user ? null : saveBestMoves(res.data.pvs)
+                scorePosition(score, fen, user)
+              })
+          }
+        })
+    }
   }
 
-  function parsePvs(pvs) {
+  function saveBestMoves(pvs) {
     // save all moves that are within 10 cp of best move
-    // "pvs":[{"moves":"g1f3 g8f6 c2c4 e7e6 b1c3 f8e7 e2e3 e8h8 a2a3 c7c5","cp":42}, ...
+    // {"pvs":[{"moves":"g1f3 g8f6 c2c4 e7e6 b1c3 f8e7 e2e3 e8h8 a2a3 c7c5","cp":42}, ...]}
     let newBestMoves = [];
     let score = pvs[0].cp;
     for (let pv of pvs) {
@@ -126,7 +127,6 @@ function App() {
     setBestMoves(newBestMoves);
   }
   function scorePosition(score, fen, user) {
-    console.log('scoreIn: ', score)
     let badMove = false;
     console.log('score: ', score / 100)
     if (user) {

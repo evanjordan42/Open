@@ -31,27 +31,32 @@ module.exports.getScore = (req, res) => {
     })
     .catch((err) => {
       console.log('Error getting score: ', err.response.statusText)
-      res.end('not found')
+      res.end('Not Found')
     })
 }
 
 module.exports.stockfish = (req, res) => {
   let pvs = [];
+  let depth = '18'
+  //engine.postMessage('setoption name contempt value 100')
   engine.postMessage(`setoption name multipv value ${req.query.multiPv}\\n`)
-  engine.postMessage('position fen ' + req.query.fen)
+  engine.postMessage(`position fen ${req.query.fen}`)
   engine.onmessage = function (event) {
-    if (event.split(' ')[2] === '18' /* && event.split(' ')[6] === String(req.query.multiPv)*/) {
+    if (event.split(' ')[2] === depth) {
       //console.log(event)
       let moves = event.split(' ');
-      moves.splice(0, 19);
-      moves.splice(10, 30)
-      let pvNum = event.split(' ')[6]
-      pvs[pvNum - 1] = { moves, cp: event.split(' ')[9] }
+      let multiPv = moves[moves.indexOf('multipv') + 1]
+
+      moves.splice(0, moves.indexOf('pv') + 1)
+      moves.splice(10, moves.length)
+      moves = moves.join(' ');
+
+      pvs[multiPv - 1] = { moves, cp: Number(event.split(' ')[9]) }
       if (pvs.length === Number(req.query.multiPv)) {
-        console.log('pvs: ', pvs)
-        res.send(pvs)
+        console.log(`pvs depth ${depth}:`, pvs)
+        res.send({ pvs })
       }
     }
   }
-  engine.postMessage('go to depth 18')
+  engine.postMessage(`go to depth ${depth}`)
 }
