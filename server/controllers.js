@@ -19,7 +19,7 @@ module.exports.getMoves = (req, res) => {
     .catch((err) => { console.log('Error getting moves: ', err); res.end() })
 }
 
-module.exports.getScore = (req, res) => {
+module.exports.lichess = (req, res) => {
   axios.get('https://lichess.org/api/cloud-eval', {
     params: {
       fen: req.query.fen,
@@ -38,12 +38,16 @@ module.exports.getScore = (req, res) => {
 module.exports.stockfish = (req, res) => {
   let pvs = [];
   let depth = '18'
-  //engine.postMessage('setoption name contempt value 100')
-  engine.postMessage(`setoption name multipv value ${req.query.multiPv}\\n`)
-  engine.postMessage(`position fen ${req.query.fen}`)
+  let fen = req.query.fen;
+  let user = req.query.user;
+  let multiPv;
+  user ? multiPv = 1 : multiPv = 2;
+  engine.postMessage('setoption name contempt value 0')
+  // I think + / - only refers to the other player, not always white/black
+  engine.postMessage(`setoption name multipv value ${multiPv}\\n`)
+  engine.postMessage(`position fen ${fen}`)
   engine.onmessage = function (event) {
     if (event.split(' ')[2] === depth) {
-      //console.log(event)
       let moves = event.split(' ');
       let multiPv = moves[moves.indexOf('multipv') + 1]
 
@@ -51,9 +55,10 @@ module.exports.stockfish = (req, res) => {
       moves.splice(10, moves.length)
       moves = moves.join(' ');
 
-      pvs[multiPv - 1] = { moves, cp: Number(event.split(' ')[9]) }
+      let cp = Number(event.split(' ')[9])
+      pvs[multiPv - 1] = { moves, cp }
       if (pvs.length === Number(req.query.multiPv)) {
-        console.log(`pvs depth ${depth}:`, pvs)
+        // console.log(`pvs depth ${depth}:`, pvs)
         res.send({ pvs })
       }
     }

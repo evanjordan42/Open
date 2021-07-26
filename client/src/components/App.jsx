@@ -83,15 +83,14 @@ function App() {
   function getScore(fen, user) { // gets score from lichess API, if user exceeded tolerance stop play
     if (_stockfishOnly) {
       let multiPv;
-      user ? multiPv = 1 : multiPv = 2;
-      axios.get(`/stockfish?fen=${fen}&multiPv=${multiPv}`)
+      axios.get(`/stockfish?fen=${fen}&user=${user}`)
         .then((res) => {
           let score = res.data.pvs[0].cp
           user ? null : saveBestMoves(res.data.pvs)
           scorePosition(score, fen, user)
         })
     } else {
-      axios.get(`/getScore?fen=${enPassentFix(fen)}`)
+      axios.get(`/lichess?fen=${enPassentFix(fen)}`)
         .then((res) => {
           if (res.data !== 'Not Found') {
             console.log('res.data: ', res.data)
@@ -101,8 +100,7 @@ function App() {
           } else {
             console.log('no cloud analysis found, using stockfish')
             let multiPv;
-            user ? multiPv = 1 : multiPv = 2;
-            axios.get(`/stockfish?fen=${fen}&multiPv=${multiPv}`)
+            axios.get(`/stockfish?fen=${fen}&user=${user}`)
               .then((res) => {
                 let score = res.data.pvs[0].cp
                 user ? null : saveBestMoves(res.data.pvs)
