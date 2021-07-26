@@ -78,7 +78,7 @@ function App() {
         }
       })
   }
-  let _stockfishOnly = true;
+  let _stockfishOnly = false;
 
   function getScore(fen, user) { // gets score from lichess API, if user exceeded tolerance stop play
     if (_stockfishOnly) {
@@ -92,7 +92,6 @@ function App() {
       axios.get(`/lichess?fen=${enPassentFix(fen)}`)
         .then((res) => {
           if (res.data !== 'Not Found') {
-            console.log('res.data: ', res.data)
             let score = res.data.pvs[0].cp // assumes the first pv is the one with the greatest score, which appears to be consistent
             user ? null : saveBestMoves(res.data.pvs)
             scorePosition(score, fen, user)
@@ -110,19 +109,6 @@ function App() {
     }
   }
 
-  // function testFen() {
-  //   let user = false;
-  //   let fen = 'r1bqkb1r/ppppppp1/2n2n1p/4P3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4'
-  //   axios.get(`/stockfish?fen=${fen}&user=${user}`)
-  //     .then((res) => {
-  //       let score = res.data.pvs[0].cp
-  //       user ? null : saveBestMoves(res.data.pvs)
-  //       scorePosition(score, fen, user)
-  //     })
-  // }
-
-  // testFen();
-
   function saveBestMoves(pvs) {
     // save all moves that are within 10 cp of best move
     // {"pvs":[{"moves":"g1f3 g8f6 c2c4 e7e6 b1c3 f8e7 e2e3 e8h8 a2a3 c7c5","cp":42}, ...]}
@@ -133,7 +119,6 @@ function App() {
         newBestMoves.push(pv.moves.split(' ')[0])
       }
     }
-    console.log('bestMoves: ', newBestMoves)
     setBestMoves(newBestMoves);
   }
   function scorePosition(score, fen, user) {
