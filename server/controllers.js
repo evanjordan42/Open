@@ -38,27 +38,37 @@ module.exports.lichess = (req, res) => {
 module.exports.stockfish = (req, res) => {
   let pvs = [];
   let depth = '18'
+
   let fen = req.query.fen;
   let user = req.query.user;
+  if (user === 'false') {
+    user = false
+  } else {
+    user = true;
+  }
   let multiPv;
   user ? multiPv = 1 : multiPv = 2;
   engine.postMessage('setoption name contempt value 0')
-  // I think + / - only refers to the other player, not always white/black
+
   engine.postMessage(`setoption name multipv value ${multiPv}\\n`)
   engine.postMessage(`position fen ${fen}`)
   engine.onmessage = function (event) {
     if (event.split(' ')[2] === depth) {
       let moves = event.split(' ');
-      let multiPv = moves[moves.indexOf('multipv') + 1]
+      let pv = moves[moves.indexOf('multipv') + 1]
 
       moves.splice(0, moves.indexOf('pv') + 1)
       moves.splice(10, moves.length)
       moves = moves.join(' ');
 
       let cp = Number(event.split(' ')[9])
-      pvs[multiPv - 1] = { moves, cp }
-      if (pvs.length === Number(req.query.multiPv)) {
-        // console.log(`pvs depth ${depth}:`, pvs)
+      // It seems + / - only refers to the other player, not always white/black, i.e. +3.6 after analyzing white's move means black is up 3.6
+      if (user) {
+        cp = -cp;
+      }
+      pvs.push({ moves, cp })
+      if (pvs.length === multiPv) {
+        console.log(`pvs depth ${depth}:`, pvs)
         res.send({ pvs })
       }
     }

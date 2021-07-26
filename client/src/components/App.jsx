@@ -30,7 +30,7 @@ function App() {
   const [FEN, setFEN] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [numMoves, setNumMoves] = useState(3); // the number of moves that can be picked from at random
   const [bestMoves, setBestMoves] = useState([])
-  const [tolerance, setTolerance] = useState(300); // the difference in score score between the previous move and the move made required for the learning behavior to occur
+  const [tolerance, setTolerance] = useState(100); // the difference in score score between the previous move and the move made required for the learning behavior to occur
   const [learning, setLearning] = useState(false);
   const [currentScore, setCurrentScore] = useState(0);
   const [useStockfish, setUseStockfish] = useState(true);
@@ -82,7 +82,6 @@ function App() {
 
   function getScore(fen, user) { // gets score from lichess API, if user exceeded tolerance stop play
     if (_stockfishOnly) {
-      let multiPv;
       axios.get(`/stockfish?fen=${fen}&user=${user}`)
         .then((res) => {
           let score = res.data.pvs[0].cp
@@ -110,6 +109,19 @@ function App() {
         })
     }
   }
+
+  // function testFen() {
+  //   let user = false;
+  //   let fen = 'r1bqkb1r/ppppppp1/2n2n1p/4P3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4'
+  //   axios.get(`/stockfish?fen=${fen}&user=${user}`)
+  //     .then((res) => {
+  //       let score = res.data.pvs[0].cp
+  //       user ? null : saveBestMoves(res.data.pvs)
+  //       scorePosition(score, fen, user)
+  //     })
+  // }
+
+  // testFen();
 
   function saveBestMoves(pvs) {
     // save all moves that are within 10 cp of best move
