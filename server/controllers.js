@@ -41,10 +41,10 @@ module.exports.stockfish = (req, res) => {
 
   let fen = req.query.fen;
   let user = req.query.user;
-  if (user === 'false') {
-    user = false
+  if (user === 'true') {
+    user = true
   } else {
-    user = true;
+    user = false;
   }
   let multiPv;
   user ? multiPv = 1 : multiPv = 2;
@@ -68,7 +68,6 @@ module.exports.stockfish = (req, res) => {
       }
       pvs.push({ moves, cp })
       if (pvs.length === multiPv) {
-        console.log(`pvs depth ${depth}:`, pvs)
         res.send({ pvs })
       }
     }
